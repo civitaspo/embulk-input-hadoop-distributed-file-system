@@ -49,9 +49,9 @@ module Embulk
         super
         # initialization code:
         @hadoop_home       = task['hadoop_home']
-        ENV['HADOOP_HOME'] = @hadoop_home
-        require 'hdfs_jruby'
-        require 'hdfs_jruby/file'
+        #ENV['HADOOP_HOME'] = @hadoop_home
+        #require 'hdfs_jruby'
+        #require 'hdfs_jruby/file'
 
         @hdfs_input_path   = task['hdfs_input_path']
         @file_format       = task['file_format']
@@ -65,15 +65,17 @@ module Embulk
       end
 
       def run
-        Hdfs::File.open @hdfs_input_path, 'r' do |hdfs_io|
+        #Hdfs::File.open @hdfs_input_path, 'r' do |hdfs_io|
+        IO.popen "hadoop fs -cat #{@hdfs_input_path}", 'r' do |hdfs_io|
           hdfs_io.each_line @max_line_size do |line|
+            line.chomp!
             values = @parser.call line
             idx    = -1
             page_builder.add(
                               @schema.map{|val|
                                 idx += 1
                                 v = values[idx]
-                                v.to_i if val.type == 'long'
+                                v.to_i if val['type'] == 'long'
                                 v
                               }
                             )
